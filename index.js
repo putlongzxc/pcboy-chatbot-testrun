@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 
 app.get("/", (req, res) => {
-    res.send("AirKing Messenger Bot is running!");
+    res.send("PCBOY Messenger Bot is running!");
 });
 
 const PORT = process.env.PORT || 3000;
