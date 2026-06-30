@@ -39,6 +39,7 @@ const PAYLOADS = {
   PHONE_REPAIR: 'PHONE_REPAIR',
   MORE_SERVICES: 'MORE_SERVICES',
   LAPTOP_REPAIR: 'LAPTOP_REPAIR',
+  CLEANING: 'CLEANING',
   DEVICE_SALES: 'DEVICE_SALES',
   HARDWARE_UPGRADE: 'HARDWARE_UPGRADE',
   OTHER_INQUIRY: 'OTHER_INQUIRY',
@@ -175,11 +176,16 @@ async function sendWelcomeMessage(recipientId) {
 
 /**
  * Sends the main menu buttons.
+ * Note: Messenger button templates support a max of 3 buttons,
+ * so "More Services" is sent as a follow-up quick reply option.
  */
 async function sendMainMenu(recipientId) {
   await sendButtons(recipientId, 'How can we help you today?', [
-    { title: '🖥️ Computer Repair', payload: PAYLOADS.COMPUTER_REPAIR },
     { title: '📱 Phone Repair', payload: PAYLOADS.PHONE_REPAIR },
+    { title: '🖥️ Computer Repair', payload: PAYLOADS.COMPUTER_REPAIR },
+    { title: '💻 Laptop Repair', payload: PAYLOADS.LAPTOP_REPAIR },
+  ]);
+  await sendQuickReplies(recipientId, 'Or select below:', [
     { title: '🔧 More Services', payload: PAYLOADS.MORE_SERVICES },
   ]);
 }
@@ -189,12 +195,10 @@ async function sendMainMenu(recipientId) {
  */
 async function sendMoreServicesMenu(recipientId) {
   await sendButtons(recipientId, 'Please choose one of our additional services:', [
-    { title: '💻 Laptop Repair', payload: PAYLOADS.LAPTOP_REPAIR },
-    { title: '🛒 Device Sales', payload: PAYLOADS.DEVICE_SALES },
+    { title: '🧹 Computer/Laptop Cleaning', payload: PAYLOADS.CLEANING },
+    { title: '🛒 Items for Sale', payload: PAYLOADS.DEVICE_SALES },
     { title: '⚙️ Hardware Upgrade', payload: PAYLOADS.HARDWARE_UPGRADE },
   ]);
-  // Messenger button templates support a max of 3 buttons,
-  // so "Other Inquiry" is sent as a follow-up quick reply option.
   await sendQuickReplies(recipientId, 'Or select below:', [
     { title: '💬 Other Inquiry', payload: PAYLOADS.OTHER_INQUIRY },
     { title: '🏠 Main Menu', payload: PAYLOADS.MAIN_MENU },
@@ -261,10 +265,22 @@ async function handlePayload(senderId, payload) {
       );
       break;
 
+    case PAYLOADS.CLEANING:
+      await sendServiceResponse(
+        senderId,
+        '🧹 Computer/Laptop Cleaning\n' +
+          'Please send:\n' +
+          '• Device brand and model\n' +
+          '• Specifications (if known)\n' +
+          '• Reason for cleaning (dust, overheating, maintenance, etc.)\n\n' +
+          'Our technician will reply shortly.'
+      );
+      break;
+
     case PAYLOADS.DEVICE_SALES:
       await sendServiceResponse(
         senderId,
-        "🛒 Device Sales\n" +
+        "🛒 Items for Sale\n" +
           "Tell us what device or accessory you're looking for.\n" +
           "We'll check our stock and reply shortly."
       );
