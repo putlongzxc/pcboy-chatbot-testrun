@@ -4,7 +4,7 @@ const axios = require("axios");
 const app = express();
 app.use(express.json());
 
-const VERIFY_TOKEN = "PCBOY_VERIFY_2026;
+const VERIFY_TOKEN = "PCBOY_VERIFY_2026";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
 // ==============================
