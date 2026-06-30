@@ -256,10 +256,10 @@ async function handlePayload(senderId, payload) {
     case PAYLOADS.LAPTOP_REPAIR:
       await sendServiceResponse(
         senderId,
-        '💻 Laptop and MacBook Repair\n' +
+        '💻 Laptop/Mac Repair\n' +
           'Please send:\n' +
-          '• Laptop brand\n' +
-          '• Laptop model\n' +
+          '• Laptop/Mac brand\n' +
+          '• Laptop/Mac model\n' +
           '• Description of the issue\n\n' +
           'Our technician will reply shortly.'
       );
