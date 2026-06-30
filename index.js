@@ -183,7 +183,7 @@ async function sendMainMenu(recipientId) {
   await sendButtons(recipientId, 'How can we help you today?', [
     { title: '📱 Phone Repair', payload: PAYLOADS.PHONE_REPAIR },
     { title: '🖥️ Computer Repair', payload: PAYLOADS.COMPUTER_REPAIR },
-    { title: '💻 Laptop Repair', payload: PAYLOADS.LAPTOP_REPAIR },
+    { title: '💻 Laptop/Mac Repair', payload: PAYLOADS.LAPTOP_REPAIR },
   ]);
   await sendQuickReplies(recipientId, 'Or select below:', [
     { title: '🔧 More Services', payload: PAYLOADS.MORE_SERVICES },
@@ -256,7 +256,7 @@ async function handlePayload(senderId, payload) {
     case PAYLOADS.LAPTOP_REPAIR:
       await sendServiceResponse(
         senderId,
-        '💻 Laptop Repair\n' +
+        '💻 Laptop and MacBook Repair\n' +
           'Please send:\n' +
           '• Laptop brand\n' +
           '• Laptop model\n' +
