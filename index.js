@@ -49,64 +49,6 @@ const HUMAN_TAKEOVER_NOTE =
   'If you would like immediate assistance, simply continue chatting and one of our technicians will respond.';
 
 // ---------------------------------------------------------------------------
-// Duplicate-Event Protection
-// ---------------------------------------------------------------------------
-// Facebook can redeliver the same webhook event (retries on timeout/network
-// issues, or occasional platform-level duplicate delivery) even after we've
-// already responded 200 OK. Without dedup, this causes the bot to send the
-// same menu/reply twice to a customer. We keep a short-lived cache of event
-// keys we've already handled and skip anything we've seen before.
-const processedEvents = new Map(); // key -> timestamp (ms)
-const DEDUPE_TTL_MS = 5 * 60 * 1000; // remember keys for 5 minutes
-
-function isDuplicateEvent(key) {
-  if (!key) return false; // if we can't build a reliable key, don't block it
-
-  if (processedEvents.has(key)) {
-    return true;
-  }
-  processedEvents.set(key, Date.now());
-  return false;
-}
-
-// Periodically clear out old keys so the Map doesn't grow forever.
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, ts] of processedEvents) {
-    if (now - ts > DEDUPE_TTL_MS) {
-      processedEvents.delete(key);
-    }
-  }
-}, 60 * 1000);
-
-// ---------------------------------------------------------------------------
-// Per-User Serialization
-// ---------------------------------------------------------------------------
-// If two events for the same user arrive back-to-back (e.g. a fast double
-// tap on a button, or FB firing a message + postback close together), we
-// don't want them processed concurrently - that can interleave two menu
-// sends. This chains each user's events onto a single promise so they run
-// one at a time, in order.
-const userQueues = new Map(); // senderId -> Promise chain
-
-function runSerialized(senderId, task) {
-  const previous = userQueues.get(senderId) || Promise.resolve();
-  const next = previous.then(task).catch((err) => {
-    console.error(`Error processing event for ${senderId}:`, err.message);
-  });
-  userQueues.set(senderId, next);
-
-  // Prevent unbounded growth of the map once the chain settles.
-  next.finally(() => {
-    if (userQueues.get(senderId) === next) {
-      userQueues.delete(senderId);
-    }
-  });
-
-  return next;
-}
-
-// ---------------------------------------------------------------------------
 // Messenger API Helper Functions
 // ---------------------------------------------------------------------------
 
@@ -241,7 +183,7 @@ async function sendMainMenu(recipientId) {
   await sendButtons(recipientId, 'How can we help you today?', [
     { title: '📱 Phone Repair', payload: PAYLOADS.PHONE_REPAIR },
     { title: '🖥️ Computer Repair', payload: PAYLOADS.COMPUTER_REPAIR },
-    { title: '💻 Mac/Laptop Repair', payload: PAYLOADS.LAPTOP_REPAIR },
+    { title: '💻 MAC/Laptop Repair', payload: PAYLOADS.LAPTOP_REPAIR },
   ]);
   await sendQuickReplies(recipientId, 'Or select below:', [
     { title: '🔧 More Services', payload: PAYLOADS.MORE_SERVICES },
@@ -253,7 +195,7 @@ async function sendMainMenu(recipientId) {
  */
 async function sendMoreServicesMenu(recipientId) {
   await sendButtons(recipientId, 'Please choose one of our additional services:', [
-    { title: '🧹 Cleaning Computer/Macbook/Laptop', payload: PAYLOADS.CLEANING },
+    { title: '🧹 Computer/Laptop Cleaning', payload: PAYLOADS.CLEANING },
     { title: '🛒 Items for Sale', payload: PAYLOADS.DEVICE_SALES },
     { title: '⚙️ Hardware Upgrade', payload: PAYLOADS.HARDWARE_UPGRADE },
   ]);
@@ -390,48 +332,27 @@ async function handleMessagingEvent(event) {
     return;
   }
 
-  // Build a dedupe key for this event so a redelivered webhook doesn't get
-  // processed (and replied to) twice.
-  let dedupeKey = null;
-  if (event.message && event.message.mid) {
-    // Messages (including ones carrying a quick_reply payload) have a
-    // unique mid - the most reliable dedupe key available.
-    dedupeKey = `msg:${event.message.mid}`;
-  } else if (event.postback && event.postback.payload) {
-    // Postbacks don't have a mid, so combine sender + payload + timestamp.
-    dedupeKey = `postback:${senderId}:${event.postback.payload}:${event.timestamp}`;
-  }
-
-  if (isDuplicateEvent(dedupeKey)) {
-    console.log(`Skipping duplicate event: ${dedupeKey}`);
+  // Handle postback events (e.g., Get Started button, template buttons)
+  if (event.postback && event.postback.payload) {
+    await handlePayload(senderId, event.postback.payload);
     return;
   }
 
-  // Process this user's events one at a time, in order, so overlapping
-  // events for the same person can't trigger overlapping/duplicate replies.
-  await runSerialized(senderId, async () => {
-    // Handle postback events (e.g., Get Started button, template buttons)
-    if (event.postback && event.postback.payload) {
-      await handlePayload(senderId, event.postback.payload);
-      return;
-    }
+  // Handle quick reply payloads (sent as a regular message with quick_reply)
+  if (
+    event.message &&
+    event.message.quick_reply &&
+    event.message.quick_reply.payload
+  ) {
+    await handlePayload(senderId, event.message.quick_reply.payload);
+    return;
+  }
 
-    // Handle quick reply payloads (sent as a regular message with quick_reply)
-    if (
-      event.message &&
-      event.message.quick_reply &&
-      event.message.quick_reply.payload
-    ) {
-      await handlePayload(senderId, event.message.quick_reply.payload);
-      return;
-    }
-
-    // Handle plain text messages - reply with main menu as fallback guidance
-    if (event.message && event.message.text) {
-      await sendMainMenu(senderId);
-      return;
-    }
-  });
+  // Handle plain text messages - reply with main menu as fallback guidance
+  if (event.message && event.message.text) {
+    await sendMainMenu(senderId);
+    return;
+  }
 }
 
 // ---------------------------------------------------------------------------
