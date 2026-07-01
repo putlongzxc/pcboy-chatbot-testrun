@@ -253,7 +253,7 @@ async function sendMainMenu(recipientId) {
  */
 async function sendMoreServicesMenu(recipientId) {
   await sendButtons(recipientId, 'Please choose one of our additional services:', [
-    { title: '🧹 Computer/Laptop Cleaning', payload: PAYLOADS.CLEANING },
+    { title: '🧹 Cleaning Computer/Macbook/Laptop', payload: PAYLOADS.CLEANING },
     { title: '🛒 Items for Sale', payload: PAYLOADS.DEVICE_SALES },
     { title: '⚙️ Hardware Upgrade', payload: PAYLOADS.HARDWARE_UPGRADE },
   ]);
